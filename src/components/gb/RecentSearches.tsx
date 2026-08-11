@@ -5,7 +5,7 @@ export interface RecentSearch {
   label: string;
   query: string;
   tab: string;
-  bhk?: string;
+  bhk?: string | undefined;
 }
 
 export function RecentSearches({
