@@ -126,7 +126,7 @@ export function Header() {
             aria-controls="mobile-menu"
             className="grid size-10 place-items-center rounded-md text-foreground transition-colors hover:bg-surface"
           >
-            {open ? <Menu className="size-5 rotate-90" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+            {open ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
           </button>
         </div>
       </div>
@@ -178,5 +178,3 @@ export function Header() {
     </header>
   );
 }
-
-export { X };
