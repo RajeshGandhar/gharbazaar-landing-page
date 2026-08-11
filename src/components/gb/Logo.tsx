@@ -12,8 +12,8 @@ export function Logo({ compact = false }: { compact?: boolean }) {
       </span>
       <span
         className={
-          "font-display text-lg font-semibold tracking-tight text-foreground transition-all " +
-          (compact ? "hidden sm:inline" : "")
+          "font-display font-semibold tracking-tight text-foreground " +
+          (compact ? "text-base sm:text-lg" : "text-lg")
         }
       >
         Ghar<span className="text-primary">Bazaar</span>

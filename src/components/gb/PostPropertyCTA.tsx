@@ -6,7 +6,7 @@ export function PostPropertyCTA() {
     <section id="cta" className="container-page scroll-mt-24 py-14 sm:py-16">
       <Reveal>
         <div className="grid overflow-hidden rounded-xl border border-border bg-surface lg:grid-cols-2">
-          <div className="p-7 sm:p-10">
+          <div className="flex flex-col justify-center p-7 sm:p-10">
             <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
               Have a Property to Sell or Rent?
             </h2>
@@ -28,7 +28,7 @@ export function PostPropertyCTA() {
               </a>
             </div>
           </div>
-          <div className="relative min-h-56 overflow-hidden lg:min-h-full">
+          <div className="relative order-first min-h-52 overflow-hidden lg:order-none lg:min-h-[22rem]">
             <img
               src={ctaImg}
               alt="Independent villa listed on GharBazaar"
@@ -38,7 +38,7 @@ export function PostPropertyCTA() {
               decoding="async"
               className="size-full object-cover"
             />
-            <span className="absolute inset-0 bg-gradient-to-r from-surface via-surface/25 to-transparent" />
+            <span className="absolute inset-0 bg-gradient-to-t from-surface/80 to-transparent lg:bg-gradient-to-r lg:from-surface lg:via-surface/25 lg:to-transparent" />
           </div>
         </div>
       </Reveal>
