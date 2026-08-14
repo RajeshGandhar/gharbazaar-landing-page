@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell, Heart, Menu, Search, User, X } from "lucide-react";
 import { Logo } from "./Logo";
-import { useShortlist } from "./useShortlist";
+import { useShortlist } from "@/lib/gb/local-store";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
