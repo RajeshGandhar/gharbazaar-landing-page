@@ -6,15 +6,20 @@ import { PropertyGridSkeleton } from "./Skeletons";
 import { dataSource } from "@/lib/gb/data-source";
 import { useAsync } from "@/lib/gb/useAsync";
 import { useCompare, useRecentlyViewed, useShortlist } from "@/lib/gb/local-store";
+import { clearSearch, useActiveSearch } from "@/lib/gb/search-store";
 
 export function FeaturedProperties() {
   const shortlist = useShortlist();
   const compare = useCompare();
   const recentlyViewed = useRecentlyViewed();
+  const { filters, isApplied } = useActiveSearch();
 
   const { data, loading, error, reload } = useAsync(
-    () => dataSource.listProperties({ featuredOnly: true, limit: 6 }),
-    [],
+    () =>
+      isApplied
+        ? dataSource.listProperties({ filters, limit: 9 })
+        : dataSource.listProperties({ featuredOnly: true, limit: 6 }),
+    [isApplied, JSON.stringify(filters)],
   );
   const compared = useAsync(() => dataSource.getPropertiesByIds(compare.ids), [compare.ids.join(",")]);
   const properties = data?.items ?? [];
@@ -24,14 +29,28 @@ export function FeaturedProperties() {
       <Reveal>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">Featured Properties</h2>
+            <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+              {isApplied ? "Search Results" : "Featured Properties"}
+            </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Hand-picked homes from verified owners, agents and builders.
+              {isApplied
+                ? `${data?.total ?? 0} propert${(data?.total ?? 0) === 1 ? "y" : "ies"} matching your search.`
+                : "Hand-picked homes from verified owners, agents and builders."}
             </p>
           </div>
-          <a href="#categories" className="text-sm font-semibold text-primary hover:text-primary-soft">
-            View all properties →
-          </a>
+          {isApplied ? (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="text-sm font-semibold text-primary hover:text-primary-soft"
+            >
+              Clear search
+            </button>
+          ) : (
+            <a href="#categories" className="text-sm font-semibold text-primary hover:text-primary-soft">
+              View all properties →
+            </a>
+          )}
         </div>
       </Reveal>
 
@@ -55,8 +74,25 @@ export function FeaturedProperties() {
 
       {!loading && !error && properties.length === 0 && (
         <EmptyState
-          title="No featured properties yet"
-          description="Featured listings appear here as soon as owners and agents publish them."
+          title={isApplied ? "No properties match your search" : "No featured properties yet"}
+          description={
+            isApplied
+              ? "Try widening your budget, removing a filter or searching a nearby locality."
+              : "Featured listings appear here as soon as owners and agents publish them."
+          }
+          {...(isApplied
+            ? {
+                action: (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-soft"
+                  >
+                    Clear search
+                  </button>
+                ),
+              }
+            : {})}
         />
       )}
 

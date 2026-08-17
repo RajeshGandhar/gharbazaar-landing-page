@@ -4,6 +4,7 @@ import { Hero } from "@/components/gb/Hero";
 import { PropertyCategories } from "@/components/gb/PropertyCategories";
 import { ActionCards } from "@/components/gb/ActionCards";
 import { FeaturedProperties } from "@/components/gb/FeaturedProperties";
+import { RecentlyViewed } from "@/components/gb/RecentlyViewed";
 import { PopularLocalities } from "@/components/gb/PopularLocalities";
 import { NewProjects } from "@/components/gb/NewProjects";
 import { WhyGharBazaar } from "@/components/gb/WhyGharBazaar";
@@ -44,6 +45,7 @@ function Index() {
         <PropertyCategories />
         <ActionCards />
         <FeaturedProperties />
+        <RecentlyViewed />
         <PopularLocalities />
         <NewProjects />
         <WhyGharBazaar />
