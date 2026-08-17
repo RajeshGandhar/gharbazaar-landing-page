@@ -158,7 +158,10 @@ export function PropertySearch() {
       className="rounded-xl border border-border bg-surface/95 p-4 shadow-[var(--shadow-lift)] backdrop-blur-xl sm:p-5"
     >
       <div className="border-b border-border pb-3">
-        <SearchTabs value={tab} onChange={setTab} />
+        <SearchTabs
+          value={draft.listingType as never}
+          onChange={(v) => setDraft((f) => ({ ...f, listingType: v as ListingType }))}
+        />
       </div>
 
       <form
