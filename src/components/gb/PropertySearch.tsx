@@ -1,28 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, Search, SlidersHorizontal } from "lucide-react";
+import { BellPlus, Mic, Search, SlidersHorizontal, X } from "lucide-react";
 import { SearchTabs } from "./SearchTabs";
-import { SearchFilters, type FilterState } from "./SearchFilters";
 import { RecentSearches, type RecentSearch } from "./RecentSearches";
-import { demoRecentSearches, type ListingType } from "@/data/properties";
+import { FiltersDrawer } from "./FiltersDrawer";
+import { demoRecentSearches } from "@/data/properties";
+import {
+  countActiveFilters,
+  emptyFilters,
+  type ListingType,
+  type SearchFilters,
+} from "@/lib/gb/types";
+import { applySearch, clearSearch, useActiveSearch } from "@/lib/gb/search-store";
+import { useSavedSearches } from "@/lib/gb/local-store";
+import { dataSource } from "@/lib/gb/data-source";
+import { describeSearch } from "@/lib/gb/format";
 import { cn } from "@/lib/utils";
 
 const RECENT_KEY = "gharbazaar:recent-searches";
 
 export function PropertySearch() {
-  const [tab, setTab] = useState<ListingType>("buy");
-  const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<FilterState>({
-    propertyType: "Property Type",
-    budget: "Budget",
-    bhk: "BHK",
-  });
+  const [draft, setDraft] = useState<SearchFilters>(() => emptyFilters("buy"));
   const [showFilters, setShowFilters] = useState(false);
   const [recent, setRecent] = useState<RecentSearch[]>(demoRecentSearches);
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [status, setStatus] = useState("");
+  const [resultCount, setResultCount] = useState<number | null>(null);
   const recognitionRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const savedSearches = useSavedSearches();
+  const { isApplied } = useActiveSearch();
+  const activeCount = countActiveFilters(draft);
 
   useEffect(() => {
     try {
@@ -48,28 +56,45 @@ export function PropertySearch() {
     }
   }, []);
 
+  // Live result count for the drawer's primary action.
+  useEffect(() => {
+    if (!showFilters) return;
+    let cancelled = false;
+    setResultCount(null);
+    dataSource
+      .listProperties({ filters: draft })
+      .then((page) => !cancelled && setResultCount(page.total))
+      .catch(() => !cancelled && setResultCount(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [showFilters, draft]);
+
   const runSearch = useCallback(
-    (term: string) => {
-      const value = term.trim();
-      if (!value) {
+    (next: SearchFilters) => {
+      const value = next.query.trim();
+      if (!value && countActiveFilters(next) === 0) {
         inputRef.current?.focus();
         setStatus("Enter a locality, society, builder or city to search.");
         return;
       }
-      const entry: RecentSearch = {
-        id: `${Date.now()}`,
-        label: value,
-        query: value,
-        tab,
-        bhk: filters.bhk !== "BHK" ? filters.bhk : undefined,
-      };
-      persistRecent(
-        [entry, ...recent.filter((r) => r.label.toLowerCase() !== value.toLowerCase())].slice(0, 6),
-      );
-      setStatus(`Showing ${tab} results for “${value}”.`);
+      applySearch(next);
+      if (value) {
+        const entry: RecentSearch = {
+          id: `${Date.now()}`,
+          label: value,
+          query: value,
+          tab: next.listingType,
+          bhk: next.bedrooms[0] ? `${next.bedrooms[0]} BHK` : undefined,
+        };
+        persistRecent(
+          [entry, ...recent.filter((r) => r.label.toLowerCase() !== value.toLowerCase())].slice(0, 6),
+        );
+      }
+      setStatus(`Showing ${next.listingType} results${value ? ` for “${value}”` : ""}.`);
       document.getElementById("featured")?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
-    [filters.bhk, persistRecent, recent, tab],
+    [persistRecent, recent],
   );
 
   const toggleVoice = useCallback(() => {
@@ -90,9 +115,14 @@ export function PropertySearch() {
     recognition.maxAlternatives = 1;
     recognition.onresult = (event: any) => {
       const transcript = event.results?.[0]?.[0]?.transcript ?? "";
-      setQuery(transcript);
       setListening(false);
-      if (transcript) runSearch(transcript);
+      if (transcript) {
+        setDraft((prev) => {
+          const next = { ...prev, query: transcript };
+          runSearch(next);
+          return next;
+        });
+      }
     };
     recognition.onerror = () => {
       setListening(false);
@@ -106,10 +136,20 @@ export function PropertySearch() {
   }, [listening, runSearch]);
 
   const applyRecent = (item: RecentSearch) => {
-    setQuery(item.query);
-    setTab((item.tab as ListingType) ?? "buy");
-    setFilters((f) => ({ ...f, bhk: item.bhk ?? "BHK" }));
-    runSearch(item.query);
+    const bhk = item.bhk ? Number.parseInt(item.bhk, 10) : NaN;
+    const next: SearchFilters = {
+      ...draft,
+      query: item.query,
+      listingType: (item.tab as ListingType) ?? "buy",
+      bedrooms: Number.isNaN(bhk) ? draft.bedrooms : [bhk],
+    };
+    setDraft(next);
+    runSearch(next);
+  };
+
+  const handleSaveSearch = () => {
+    const entry = savedSearches.save(draft);
+    setStatus(`Saved search “${entry.name}”. We'll alert you when accounts are connected.`);
   };
 
   return (
@@ -118,14 +158,17 @@ export function PropertySearch() {
       className="rounded-xl border border-border bg-surface/95 p-4 shadow-[var(--shadow-lift)] backdrop-blur-xl sm:p-5"
     >
       <div className="border-b border-border pb-3">
-        <SearchTabs value={tab} onChange={setTab} />
+        <SearchTabs
+          value={draft.listingType as never}
+          onChange={(v) => setDraft((f) => ({ ...f, listingType: v as ListingType }))}
+        />
       </div>
 
       <form
         className="pt-4"
         onSubmit={(e) => {
           e.preventDefault();
-          runSearch(query);
+          runSearch(draft);
         }}
       >
         <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 focus-within:border-primary/60">
@@ -137,8 +180,8 @@ export function PropertySearch() {
             id="property-search-input"
             ref={inputRef}
             type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={draft.query}
+            onChange={(e) => setDraft((f) => ({ ...f, query: e.target.value }))}
             placeholder="Search by locality, society, builder or city"
             className="min-w-0 flex-1 bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none sm:text-base"
           />
@@ -160,19 +203,23 @@ export function PropertySearch() {
         </div>
 
         <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-center">
-          <div className="min-w-0 flex-1">
-            <SearchFilters value={filters} onChange={setFilters} />
+          <div className="min-w-0 flex-1 text-xs text-muted-foreground">
+            {activeCount > 0 ? describeSearch(draft) : "Add filters to narrow down your search."}
           </div>
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setShowFilters((v) => !v)}
+              onClick={() => setShowFilters(true)}
               aria-expanded={showFilters}
-              aria-controls="advanced-filters"
               className="inline-flex items-center gap-2 rounded-md border border-border px-3.5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
             >
               <SlidersHorizontal className="size-4" aria-hidden="true" />
               Filters
+              {activeCount > 0 && (
+                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-bold text-primary-foreground">
+                  {activeCount}
+                </span>
+              )}
             </button>
             <button
               type="submit"
@@ -183,39 +230,51 @@ export function PropertySearch() {
             </button>
           </div>
         </div>
-
-        {showFilters && (
-          <div
-            id="advanced-filters"
-            className="mt-3 grid gap-2 rounded-lg border border-border bg-surface-2/60 p-3 sm:grid-cols-3"
-          >
-            {[
-              { label: "Possession", options: ["Any", "Ready to Move", "Under Construction"] },
-              { label: "Furnishing", options: ["Any", "Unfurnished", "Semi-Furnished", "Fully Furnished"] },
-              { label: "Listed By", options: ["Anyone", "Owner", "Agent", "Builder"] },
-            ].map((f) => (
-              <div key={f.label}>
-                <label
-                  htmlFor={`adv-${f.label}`}
-                  className="mb-1.5 block text-xs font-medium text-muted-foreground"
-                >
-                  {f.label}
-                </label>
-                <select
-                  id={`adv-${f.label}`}
-                  className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm text-foreground"
-                >
-                  {f.options.map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-        )}
       </form>
 
+      {isApplied && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              clearSearch();
+              setDraft(emptyFilters(draft.listingType));
+              setStatus("Search cleared.");
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X className="size-3.5" aria-hidden="true" />
+            Clear search
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveSearch}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            <BellPlus className="size-3.5" aria-hidden="true" />
+            Save this search
+          </button>
+          {savedSearches.count > 0 && (
+            <span className="text-xs text-muted-foreground">{savedSearches.count} saved</span>
+          )}
+        </div>
+      )}
+
       <RecentSearches items={recent} onSelect={applyRecent} />
+
+      <FiltersDrawer
+        open={showFilters}
+        value={draft}
+        onChange={setDraft}
+        onClose={() => setShowFilters(false)}
+        onApply={() => {
+          setShowFilters(false);
+          runSearch(draft);
+        }}
+        onReset={() => setDraft(emptyFilters(draft.listingType))}
+        onSaveSearch={handleSaveSearch}
+        resultCount={resultCount}
+      />
 
       <p aria-live="polite" className="sr-only">
         {status}
