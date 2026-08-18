@@ -39,6 +39,7 @@ export interface Page<T> {
 export interface GharBazaarDataSource {
   listProperties(query?: PropertyQuery): Promise<Page<Property>>;
   getPropertiesByIds(ids: string[]): Promise<Property[]>;
+  getPropertyBySlug(slug: string): Promise<Property | null>;
   listPropertyTypes(): Promise<PropertyType[]>;
   listLocalities(limit?: number): Promise<Locality[]>;
   listProjects(limit?: number): Promise<Project[]>;
@@ -109,6 +110,8 @@ export const mockDataSource: GharBazaarDataSource = {
     );
   },
   async listPropertyTypes() {
+    return delay(mockPropertyTypes, 260);
+  },
     return delay(mockPropertyTypes, 260);
   },
   async listLocalities(limit) {
