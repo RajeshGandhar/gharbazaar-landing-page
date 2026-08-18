@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Bell, Heart, Menu, Search, User, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
-import { useShortlist } from "@/lib/gb/local-store";
+import { SignInDialog } from "./SignInDialog";
+import { useCompare, useShortlist } from "@/lib/gb/local-store";
+import { useAuth } from "@/lib/gb/auth";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -17,7 +20,10 @@ const navLinks = [
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
   const { count } = useShortlist();
+  const compare = useCompare();
+  const { isAuthenticated, user, signOut } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -67,8 +73,19 @@ export function Header() {
         </div>
 
         <div className="hidden items-center gap-2 lg:flex">
+          {compare.count > 0 && (
+            <Link
+              to="/compare"
+              className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Compare
+              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground">
+                {compare.count}
+              </span>
+            </Link>
+          )}
           <a
-            href="#featured"
+            href="/#featured"
             className="relative inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <Heart className="size-4" aria-hidden="true" />
@@ -92,13 +109,14 @@ export function Header() {
           >
             Post Property
           </a>
-          <a
-            href="#cta"
+          <button
+            type="button"
+            onClick={() => (isAuthenticated ? void signOut() : setSignInOpen(true))}
             className="inline-flex items-center gap-2 rounded-md border border-border px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface"
           >
             <User className="size-4" aria-hidden="true" />
-            Login
-          </a>
+            {isAuthenticated ? `Sign out${user?.phone ? ` (${user.phone.slice(-4)})` : ""}` : "Login"}
+          </button>
         </div>
 
         {/* Mobile actions */}
@@ -111,13 +129,14 @@ export function Header() {
           >
             <Search className="size-5" aria-hidden="true" />
           </button>
-          <a
-            href="#cta"
-            aria-label="Login to GharBazaar"
+          <button
+            type="button"
+            onClick={() => (isAuthenticated ? void signOut() : setSignInOpen(true))}
+            aria-label={isAuthenticated ? "Sign out of GharBazaar" : "Login to GharBazaar"}
             className="grid size-10 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
           >
             <User className="size-5" aria-hidden="true" />
-          </a>
+          </button>
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -156,7 +175,7 @@ export function Header() {
                 Post Property
               </a>
               <a
-                href="#featured"
+                href="/#featured"
                 onClick={() => setOpen(false)}
                 aria-label="View shortlist"
                 className="grid size-11 place-items-center rounded-md border border-border text-foreground"
@@ -175,6 +194,7 @@ export function Header() {
           </nav>
         </div>
       )}
+      <SignInDialog open={signInOpen} onClose={() => setSignInOpen(false)} />
     </header>
   );
 }
