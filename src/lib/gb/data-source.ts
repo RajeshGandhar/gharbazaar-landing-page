@@ -112,7 +112,8 @@ export const mockDataSource: GharBazaarDataSource = {
   async listPropertyTypes() {
     return delay(mockPropertyTypes, 260);
   },
-    return delay(mockPropertyTypes, 260);
+  async getPropertyBySlug(slug) {
+    return delay(mockProperties.find((p) => p.slug === slug) ?? null, 260);
   },
   async listLocalities(limit) {
     return delay(limit ? mockLocalities.slice(0, limit) : mockLocalities, 320);
