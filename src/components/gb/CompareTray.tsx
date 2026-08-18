@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { Property } from "@/lib/gb/types";
 import { COMPARE_LIMIT } from "@/lib/gb/local-store";
 
@@ -45,12 +46,12 @@ export function CompareTray({
           >
             Clear
           </button>
-          <a
-            href="#cta"
+          <Link
+            to="/compare"
             className="rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-soft"
           >
             Compare now
-          </a>
+          </Link>
         </div>
       </div>
     </div>

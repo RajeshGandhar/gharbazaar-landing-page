@@ -1,4 +1,5 @@
 import { Bath, BedDouble, GitCompareArrows, Heart, Maximize, MapPin } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { Property } from "@/lib/gb/types";
 import { formatArea, timeAgo } from "@/lib/gb/format";
 import { FlagBadge, VerificationBadge } from "./PropertyBadges";
@@ -110,13 +111,14 @@ export function PropertyCard({
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {property.propertyTypeName}
           </span>
-          <a
-            href="#cta"
+          <Link
+            to="/property/$slug"
+            params={{ slug: property.slug }}
             onClick={() => onView?.(property.id)}
             className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary hover:text-primary"
           >
             View Details
-          </a>
+          </Link>
         </div>
       </div>
     </article>
